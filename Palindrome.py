@@ -1,4 +1,8 @@
 def isPalindrome(aString):
+  '''
+  This function takes in a string and returns a boolean.
+  if aString is palindrom - True, else - False
+  '''
 
   # delete space
   String=''
