@@ -10,11 +10,11 @@ class AdoptionCenter:
     def __init__(self, name, species_types, location):
         self.name = name
         self.species_types = species_types
-        self.location = location
+        self.location = (location[0] * 1.0, location[1] * 1.0)
 
-    def get_number_of_species(self, animal):
-        # return number of apecified animal in adoption center
-        return self.species_types[animal]
+    def get_name(self):
+        # return the name of the adoption center
+        return self.name
 
     def get_location(self):
         # return location of adoption center
@@ -23,20 +23,28 @@ class AdoptionCenter:
 
     def get_species_count(self):
         # return dict of available pets in adoption center
-        self.dict_copy = self.species_types.copy()
-        for key in self.dict_copy.keys():
-            if self.dict_copy[key] == 0:
-                del self.dict_copy[key]
-        return self.dict_copy
-
-    def get_name(self):
-        # return name of adoption center
-        return self.name
+        copy_species_count = {}
+        for name in self.species_types:
+            if self.species_types[name] > 0:
+                copy_species_count[name] = self.species_types[name]
+        return copy_species_count
+        
+    def get_number_of_species(self, animal):
+        # return number of apecified animal in adoption center
+        if animal not in self.get_species_count():
+            number = 0
+        else:
+            number = self.get_species_count()[animal]
+        return number
 
     def adopt_pet(self, species):
         # update the value for specified pet on "-1" value
-        if self.species_types[species] > 0:
-            self.species_types[species] = self.species_types[species] - 1
+        if species in self.get_species_count():
+            if self.get_species_count()[species] == 1:
+                del self.species_count[species_name]
+            else:
+                self.species_types[species] -= 1
+
 
 
 class Adopter:
@@ -59,8 +67,8 @@ class Adopter:
 
     def get_score(self, adoption_center):
         # return score of "how good of a fit the specific adopter is to the specific adoption center". Formula: 1 * species in spesified adoption center
-        self.score = float(1 * adoption_center.get_number_of_species(self.desired_species))
-        return self.score
+        score = float(adoption_center.get_number_of_species(self.desired_species))
+        return score
 
 
 
@@ -75,16 +83,13 @@ class FlexibleAdopter(Adopter,object):
         Adopter.__init__(self, name, desired_species)
         self.considered_species = considered_species
 
-
     def get_score(self, adoption_center):
         # return score of "how good of a fit the specific adopter is to the specific adoption center". Formula: adopter_score + 0.3 * num_other
-        self.num_other = 0.0
+        score = float(adoption_center.get_number_of_species(self.desired_species))
         for species in self.considered_species:
-            self.num_other = adoption_center.get_number_of_species(species)
-        self.score = super(FlexibleAdopter, self).get_score(adoption_center) + float(0.3 * self.num_other)
-        return self.score
+            score += 0.3 * adoption_center.get_number_of_species(species)
+        return score
 
-# НЕДОДЕЛАН!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 class FearfulAdopter(Adopter,object):
     """
     A FearfulAdopter is afraid of a particular species of animal.
@@ -98,7 +103,7 @@ class FearfulAdopter(Adopter,object):
 
     def get_score(self, adoption_center):
         # return score of "how good of a fit the specific adopter is to the specific adoption center". Formula: adopter_score - 0.3 * num_feared
-        score = super(FearfulAdopter, self).get_score(adoption_center) - 0.3 * adoption_center.get_number_of_species(self.feared_species)
+        score = float(adoption_center.get_number_of_species(self.desired_species)) - 0.3 * adoption_center.get_number_of_species(self.feared_species)
         if score < 0: score = 0.0
         return score
 
