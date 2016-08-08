@@ -117,15 +117,16 @@ class AllergicAdopter(Adopter,object):
     """
     def __init__(self, name, desired_species, allergic_species):
         Adopter.__init__(self, name, desired_species)
-        self.allergic_species = allergic_species
+        self.allergic_species = allergic_species[:]
 
     def get_score(self, adoption_center):
-        #an AllergicAdopter will return a value that is 0 if the adoption center has one or more of a species that the adopter is allergic to, otherwise it should calculate score based on the Adopter's calculate score method.
-        for element in self.allergic_species:
-            if adoption_center.get_number_of_species(element) > 0:
+        for s in self.allergic_species:
+            if adoption_center.get_number_of_species(s) > 0:
                 return 0.0
-        score = super(AllergicAdopter, self).get_score(adoption_center)
-        return score
+        
+        species = self.get_desired_species()
+        num_desired = adoption_center.get_number_of_species(species)
+        return 1.0 * num_desired
 
 
 class MedicatedAllergicAdopter(AllergicAdopter,object):
@@ -138,24 +139,21 @@ class MedicatedAllergicAdopter(AllergicAdopter,object):
     """
     def __init__(self, name, desired_species, allergic_species, medicine_effectiveness):
         AllergicAdopter.__init__(self, name, desired_species, allergic_species)
-        self.medicine_effectiveness = medicine_effectiveness
-
-#get_number_of_species(self, animal)
+        self.allergic_species = allergic_species[:]
+        self.medicine_effectiveness = medicine_effectiveness.copy()
 
     def get_score(self, adoption_center):
-        tmp = {} #словать со всеми алергенными
-        tmp_list = []
-        for pet in self.medicine_effectiveness:
-            if adoption_center.get_number_of_species(pet)>0:
-                tmp[pet] = self.medicine_effectiveness[pet]
-
-        if tmp == {}:
-            score = super(MedicatedAllergicAdopter, self).get_score(adoption_center)
-            return score
+        effects = []
+        for s in self.medicine_effectiveness:
+            if adoption_center.get_number_of_species(s) > 0:
+                effects.append(self.medicine_effectiveness[s])
+        if len(effects) > 0:
+            lowest_effectiveness = min(effects)
         else:
-            tmp_list = tmp.values().sort()
-            score = tmp_list[0] * super(MedicatedAllergicAdopter, self).get_score(adoption_center)
-            return score
+            lowest_effectiveness = 1.0
+        species = self.get_desired_species()
+        num_desired = adoption_center.get_number_of_species(species)
+        return 1.0 * num_desired * lowest_effectiveness
 
 class SluggishAdopter(Adopter):
     """
@@ -170,17 +168,56 @@ class SluggishAdopter(Adopter):
     elif distance < 5. return random between (.5, .7 times number of desired species
     else return random between (.1, .5) times number of desired species
     """
-    # Your Code Here, should contain an __init__ and a get_score method.
+    def __init__(self, name, desired_species, location):
+        Adopter.__init__(self, name, desired_species)
+        self.location = (location[0] * 1.0, location[1] * 1.0)
+
+    def get_linear_distance(self, to_location):
+        x1, y1 = self.location
+        x2, y2 = to_location
+        return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+    def get_score(self, adoption_center):
+        species = self.get_desired_species()
+        num_desired = adoption_center.get_number_of_species(species)
+
+        ad_cent_location = adoption_center.get_location()
+        dist = self.get_linear_distance(ad_cent_location)
+
+        if dist <= 1:
+            return 1.0 * num_desired
+        elif dist <= 3:
+            return random.uniform(0.7, 0.9) * num_desired
+        elif dist <= 5:
+            return random.uniform(0.5, 0.7) * num_desired
+        elif dist > 5:
+            return random.uniform(0.1, 0.5) * num_desired
 
 
 def get_ordered_adoption_center_list(adopter, list_of_adoption_centers):
     """
     The method returns a list of an organized adoption_center such that the scores for each AdoptionCenter to the Adopter will be ordered from highest score to lowest score.
     """
-    # Your Code Here
+    ranking = []
+
+    for ac in list_of_adoption_centers:
+        ranking.append([ac, adopter.get_score(ac)])
+
+    # Sort by score first, in case of duplicates - sort by center's name
+    ranking = sorted(ranking, key=lambda x: x[0].get_name())
+    ranking = sorted(ranking, key=lambda x: x[1], reverse=True)
+    return [ac[0] for ac in ranking]
 
 def get_adopters_for_advertisement(adoption_center, list_of_adopters, n):
     """
     The function returns a list of the top n scoring Adopters from list_of_adopters (in numerical order of score)
     """
-    # Your Code Here
+    ranking = []
+
+    for ad in list_of_adopters:
+        ranking.append([ad, ad.get_score(adoption_center)])
+
+    # Sort by score first, in case of duplicates - sort by adopters's name
+    ranking = sorted(ranking, key=lambda x: x[0].get_name())
+    ranking = sorted(ranking, key=lambda x: x[1], reverse=True)
+    return [x[0] for x in ranking[0:n]]
