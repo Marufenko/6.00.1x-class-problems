@@ -1,3 +1,7 @@
+'''
+https://courses.edx.org/courses/course-v1:MITx+6.00.1x_9+2T2016/courseware/Week_10/Problem_Set_6/
+'''
+
 import random as rand
 import string
 
